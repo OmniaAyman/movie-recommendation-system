@@ -66,17 +66,23 @@ def structured_search(query_filters: str) -> str:
     df_filtered = cleaned_df.copy()
     
     # 1. Apply Categorical Filters
+    # 1. Apply Categorical Filters
     if 'genre' in filters:
-        # Check if the requested genre exists in the 'genres_list' for each row
-        genre_target = filters['genre'].lower()
+        raw_genre = filters['genre']
+        # Convert to a list of lowercase strings whether the LLM provided a string OR a list
+        genre_targets = [str(g).lower() for g in raw_genre] if isinstance(raw_genre, list) else [str(raw_genre).lower()]
+        
+        # Check if ANY of the requested genres exist in the movie's genres_list
         df_filtered = df_filtered[df_filtered['genres_list'].apply(
-            lambda x: any(genre_target in str(g).lower() for g in x) if isinstance(x, list) else False
+            lambda x: any(any(target in str(g).lower() for target in genre_targets) for g in x) if isinstance(x, list) else False
         )]
         
     if 'company' in filters:
-        company_target = filters['company'].lower()
+        raw_company = filters['company']
+        company_targets = [str(c).lower() for c in raw_company] if isinstance(raw_company, list) else [str(raw_company).lower()]
+        
         df_filtered = df_filtered[df_filtered['production_companies'].apply(
-            lambda x: company_target in str(x).lower() if pd.notna(x) else False
+            lambda x: any(any(target in str(c).lower() for target in company_targets) for c in x) if isinstance(x, list) else False
         )]
 
     # 2. Apply Numerical Filters
